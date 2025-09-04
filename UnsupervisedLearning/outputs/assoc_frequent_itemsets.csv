@@ -1,0 +1,10 @@
+support,itemsets
+0.341,frozenset({'A'})
+0.443,frozenset({'B'})
+0.257,frozenset({'C'})
+0.204,frozenset({'D'})
+0.153,frozenset({'E'})
+0.121,frozenset({'F'})
+0.112,frozenset({'G'})
+0.236,"frozenset({'A', 'B'})"
+0.103,"frozenset({'C', 'B'})"
