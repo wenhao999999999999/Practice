@@ -120,8 +120,11 @@ public:
 
         // 找到倒数第 n+1 个结点
         ListNode* node = findFromEnd(dummy, n+1);
+        ListNode* tmp = node->next;
 
         node->next = node->next->next;
+
+        delete tmp;
 
         return dummy->next;
     }
@@ -190,6 +193,55 @@ public:
         return dummy->next;
     }
 
+    // 原地合并（会修改 l1/l2），仅保留每个值的一个代表节点
+    ListNode* mergeTwoListsUnique_inplace(ListNode* l1, ListNode* l2) {
+        ListNode dummy(0);
+        ListNode* tail = &dummy;
+
+        // 为了与结果最后一个值比较，tail->next 为空时不需要判重
+        while (l1 && l2) {
+            int v;
+            ListNode* pick = nullptr;
+
+            if (l1->val < l2->val) {
+                v = l1->val;
+                pick = l1;                      // 选 l1 的这个值作为代表节点
+                while (l1 && l1->val == v) l1 = l1->next; // 跳过 l1 中所有等于 v 的节点
+            } else if (l2->val < l1->val) {
+                v = l2->val;
+                pick = l2;
+                while (l2 && l2->val == v) l2 = l2->next;
+            } else { // l1->val == l2->val
+                v = l1->val;
+                pick = l1;                      // 任选一个作为代表
+                while (l1 && l1->val == v) l1 = l1->next; // 两边都跳过
+                while (l2 && l2->val == v) l2 = l2->next;
+            }
+
+            // 如果结果为空或最后一个值不是 v，才连接（通常都会成立）
+            if (tail == &dummy || tail->val != v) {
+                pick->next = nullptr;           // 切断 pick 与它后面的“重复段”
+                tail->next = pick;              // 接到结果尾
+                tail = pick;                    // 更新结果尾
+            }
+            // 否则（一般不会发生），就不接入 pick，继续循环
+        }
+
+        // 处理剩余的一条链（把剩下的值段按“唯一值”接入）
+        ListNode* rest = l1 ? l1 : l2;
+        while (rest) {
+            int v = rest->val;
+            ListNode* pick = rest;              // 代表节点
+            while (rest && rest->val == v) rest = rest->next; // 跳过这段相同值
+            if (tail == &dummy || tail->val != v) {
+                pick->next = nullptr;
+                tail->next = pick;
+                tail = pick;
+            }
+        }
+        return dummy.next;
+    }
+
     // 5.2 合并K个升序链表,循环形式
     // 题目描述：
         //输入：K个链表
@@ -255,19 +307,23 @@ public:
     // 输入：一个链表的头节点
     // 返回：反转之后的链表的头节点
 // 核心代码：
+    // 时间：O(n)；空间：递归栈 O(n)
 ListNode* reverseList(ListNode* head) {
 
     // 注意点1：这里判断条件是或的关系
-    // base case
+    // base case：空链表或单结点，反转结果就是自己
     if (head == nullptr || head->next == nullptr) return head;
 
     // 注意点2：这里返回的是头节点
+     // 递归反转 head->next 之后的子链，返回子链反转后的新头结点
     ListNode* last = reverseList(head->next);
-    head->next->next = head;
-    head->next = nullptr;
 
+    // 子链已经反转，现在把当前结点接到子链尾部
+    head->next->next = head;    // 原来 head 的后继，现为子链尾；让它指回 head
+    head->next = nullptr;   // 断开 head 与后继的旧指向，避免形成环
+
+    // 返回整条链反转后的新头（始终是最初的尾结点）
     return last;
-
 }
 
 // 7. 奇偶链表
@@ -311,3 +367,52 @@ public:
         return head;
     }
 };
+
+// 8. K个一组翻转链表
+
+// 题意简介：给定一个链表，每 k 个节点一组进行翻转，最后返回修改后的链表。如果链表节点总数不是 k 的倍数，最后剩余的节点保持原样。
+
+// 解题思路：遍历链表时每次找出 k 个节点的小段，用头插法把这一段节点翻转。需要处理好翻转前后段的连接，并用计数器控制翻转次数。
+
+// 思路：使用虚拟头结点 dummy，pre 指向待翻转段前的节点，end 指向待翻转段的尾部。
+ListNode* reverseKGroup(ListNode* head, int k) {
+    if (!head || k <= 1) return head;
+    // 创建虚拟头结点方便处理头部翻转
+    ListNode dummy(0);
+    dummy.next = head;
+    ListNode* pre = &dummy;
+    ListNode* end = &dummy;
+    while (true) {
+        // 尝试找到长度为 k 的链表段
+        for (int i = 0; i < k && end; ++i) end = end->next;
+        if (!end) break; // 不足 k 个节点时结束
+        ListNode* start = pre->next; // 待翻转段的头
+        ListNode* next = end->next;  // 待翻转段之后的第一个节点
+        end->next = nullptr;         // 断开当前段
+        // 翻转当前段，start 会变成尾部，返回的新头赋给 pre->next
+        pre->next = reverse(start);
+        // 将翻转后链表尾部的 next 指针接回原链表
+        start->next = next;
+        // 调整 pre 和 end 指针准备翻转下一段
+        pre = start;
+        end = pre;
+    }
+    return dummy.next;
+}
+
+// 单链表反转工具函数：原地迭代翻转（常称“头插法”思路）
+    // 维护：
+        // prev：已经反转好的前缀链表的头（初始为 nullptr）
+        // head：当前访问的结点
+        // next：暂存原链表中 head 的后继，防丢失
+    // 循环中把 head->next 指回 prev，随后整体向前推进。
+ListNode* reverse(ListNode* head) {
+    ListNode* prev = nullptr;   // 初始时反转后的链表为空
+    while (head) {              // 逐结点推进
+        ListNode* next = head->next;    // 暂存后继，避免指针断链
+        head->next = prev;              // 核心：把当前结点指回“前一个”
+        prev = head;                    // prev 前移：新的反转前缀头
+        head = next;                    // head 前移：继续处理后面的结点
+    }
+    return prev;    // 循环结束时，prev 指向新头
+}

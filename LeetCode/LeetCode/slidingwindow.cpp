@@ -66,8 +66,21 @@ using namespace std;
 
 // 练习题
 // 1.长度最小的子数组
-// 给定一个含有 n 个正整数的数组和一个正整数 target 。找出该数组中满足其总和大于等于 target 的长度最小的 子数组 [numsl, numsl+1, ..., numsr-1, numsr] ，并返回其长度。如果不存在符合条件的子数组，返回 0 。
-
+// 题干：
+    // 给定一个含有 n 个正整数的数组和一个正整数 target 。找出该数组中满足其总和大于等于 target 的长度最小的 子数组 [numsl, numsl+1, ..., numsr-1, numsr] ，并返回其长度。如果不存在符合条件的子数组，返回 0 。
+// 思路：
+    // 1. 定义 left, right 指针，left 指针指向数组的起点，right 指针指向数组的末尾。
+    // 2. 定义 sum 变量，记录窗口 [left, right) 内元素的和。
+    // 3. 定义 res 变量，记录结果。
+    // 4. 循环：
+        // 4.1 扩大窗口：
+            // 4.1.1 右指针右移，更新 sum 变量。
+            // 4.1.2 若 sum >= target，则更新 res 变量。
+        // 4.2 缩小窗口：
+            // 4.2.1 左指针左移，更新 sum 变量。
+            // 4.2.2 若 sum < target，则缩小窗口，直至 sum >= target。
+    // 5. 返回 res 变量。
+// 代码：
 class Solution {
 public:
     // 算法流程：定义两个指针，维护一个窗口；定义 sum 变量，记录窗口 [left, right) 内元素的和；扩大窗口条件： right < nums.size()，更新 sum；缩小窗口条件：sum >= target;定义一个 res ,维护结果；如果 sum >= target , 更新res;
@@ -94,8 +107,7 @@ public:
             }
         }
 
-        // 注意：当所有元素和都小于 target时，要返回 0；
-
+        // 注意：当所有元素和都小于 target时，要返回 0
         return res == INT_MAX ? 0 : res;
     }
 };
@@ -161,5 +173,49 @@ public:
         }
 
         return result;
+    }
+};
+
+// 3. 无重复字符的最长子串
+// 题干：
+    // 给定一个字符串 s ，请你找出其中不含有重复字符的 最长子串 的长度。
+// 思路：
+    // 1. 定义 left, right 指针，left 指针指向字符串的起点，right 指针指向“将要加入”的位置。
+    // 2. 定义 seen 哈希表，记录窗口 [left, right) 内字符出现的次数。
+    // 3. 定义 res 变量，记录结果。
+    // 4. 循环：
+        // 4.1 扩大窗口：
+            // 4.1.1 右指针右移，更新 seen 哈希表。
+            // 4.1.2 则更新 seen[s[right]] += 1。
+        // 4.2 缩小窗口：
+            // 4.2.1 左指针左移，更新 seen 哈希表。
+            // 4.2.2 若 seen[s[left]] > 0，则更新 seen[s[left]] = 0。
+    // 5. 返回 res 变量。
+// 代码：
+class Solution {
+public:
+    // 返回不含重复字符的最长子串长度
+    int lengthOfLongestSubstring(string s) {
+        unordered_map<char, int> cnt; // 计数：窗口内每个字符出现次数
+        int n = (int)s.size();
+        int left = 0, right = 0;      // 窗口为 [left, right)，右指针每次指向“将要加入”的位置
+        int res = 0;
+
+        while (right < n) {
+            char c = s[right];   // 准备把字符 c 加入窗口
+            cnt[c]++;            // 扩大窗口：将 c 纳入，可能导致重复
+            right++;             // 维护半开区间 [left, right)
+
+            // 只需关注新加入的 c 是否重复；若重复，把它压回到 1
+            while (cnt[c] > 1) {
+                char d = s[left]; // 将被移出窗口的字符
+                cnt[d]--;         // 缩小窗口，直至 c 的计数 <= 1
+                left++;
+            }
+
+            // 现在窗口 [left, right) 无重复，更新答案
+            res = max(res, right - left);
+        }
+        return res;
     }
 };

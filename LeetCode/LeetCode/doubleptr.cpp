@@ -85,8 +85,9 @@ public:
      * @return vector<vector<int>> 所有不重复的三元组，按任意顺序返回
      */
     vector<vector<int>> threeSum(vector<int>& nums) {
+        // 注意点 1 ：排序
         sort(nums.begin(), nums.end());
-        return nSumTarget(nums, 3, 0, 0);
+        return nSumTarget(nums, 3, 0, 0);   // 在有序数组里求 3 个数和为 0
     }
 
 private:
@@ -100,7 +101,7 @@ private:
      * - 当 n==2 时，退化为 2Sum 双指针求解；
      * - 当 n>2 时，枚举一个固定数，递归求解 (n-1)Sum。
      * 
-     * @param nums   已经排序的数组
+     * @param nums   必须是升序数组；
      * @param n      要寻找的数的个数 (n >= 2)
      * @param start  搜索起始下标，避免重复使用前面的元素
      * @param target 目标和
@@ -116,7 +117,8 @@ private:
         if (n == 2) { // base case：n == 2（2Sum 双指针）
             int lo = start, hi = sz - 1;
             while (lo < hi) {
-                long long sum = 1LL * nums[lo] + nums[hi];
+                // 把参与运算的表达式提升为 long long 再相加，避免 int 溢出
+                long long sum = 1LL * nums[lo] + nums[hi]; // 1LL 是 long long 类型的整数常量 1
                 int left = nums[lo], right = nums[hi];
                 if (sum < target) {
                     while (lo < hi && nums[lo] == left) lo++; // 和小了：左指针右移，并跳过相等值
@@ -130,12 +132,16 @@ private:
             }
         } else { // 递归情况：n > 2
             for (int i = start; i < sz; ++i) {
+
+                // 题目要求下标互不相同。固定了 i 之后，从 i+1 开始，天然保证后续不会再选到 i。
                 auto sub = nSumTarget(nums, n - 1, i + 1, target - nums[i]); // 枚举当前位置 i 作为固定的一个数 nums[i]。
                 for (auto& arr : sub) {
                     arr.push_back(nums[i]);
                     res.push_back(arr);
                 }
-                while (i < sz - 1 && nums[i] == nums[i + 1]) ++i; // 去重
+
+                // 保证同一层不会以相同值为“固定数”反复展开，避免重复解。
+                while (i < sz - 1 && nums[i] == nums[i + 1]) ++i; 
             }
         }
         return res;
