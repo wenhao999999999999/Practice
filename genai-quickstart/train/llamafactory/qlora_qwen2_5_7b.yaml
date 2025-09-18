@@ -1,0 +1,33 @@
+model_name_or_path: Qwen/Qwen2.5-7B-Instruct
+stage: sft
+do_train: true
+
+finetuning_type: lora
+lora_target: q_proj,v_proj,k_proj,o_proj
+quantization_bit: 4
+
+dataset: my_sft
+dataset_dir: ./train/llamafactory/datasets
+template: qwen
+
+output_dir: ./models/qwen2.5-7b-lora
+
+per_device_train_batch_size: 1
+gradient_accumulation_steps: 8
+
+# ← 这里改成十进制，确保是 float
+learning_rate: 0.0002
+# ← 显式写出常见数值项，避免被默认覆盖成字符串
+weight_decay: 0.0
+warmup_ratio: 0.03
+max_grad_norm: 1.0
+lr_scheduler_type: cosine
+optim: adamw_torch
+
+num_train_epochs: 1
+cutoff_len: 1024
+
+bf16: true
+gradient_checkpointing: true
+logging_steps: 20
+save_steps: 200

@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "InspectionReport",
+  "type": "object",
+  "properties": {
+    "设备": { "type": "string" },
+    "部件": { "type": "string" },
+    "问题描述": { "type": "string" },
+    "缺陷类别": { "type": "string" },
+    "位置": { "type": "string" },
+    "严重等级": { "type": "integer", "minimum": 1, "maximum": 5 },
+    "建议": { "type": "string" },
+    "依据": { "type": "string" }
+  },
+  "required": ["问题描述", "建议"],
+  "additionalProperties": false
+}

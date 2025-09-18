@@ -1,0 +1,6 @@
+{
+  "my_sft": {
+    "file_name": "my_sft.jsonl",
+    "columns": { "prompt": "instruction", "response": "output", "system": "", "history": "input" }
+  }
+}
