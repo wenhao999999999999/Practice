@@ -1,6 +1,7 @@
 # rag/qa_server.py
 from fastapi import FastAPI, Query
 import json, os, torch
+from typing import Iterable, List
 from haystack.dataclasses import Document
 from haystack.document_stores.in_memory import InMemoryDocumentStore
 from haystack.components.retrievers.in_memory import (
@@ -45,11 +46,29 @@ reranker = SentenceTransformersSimilarityRanker(
     device=device,
 )
 
+
+def _rrf_merge(doc_lists: Iterable[List[Document]], k: int = 60, max_docs: int = 20) -> List[Document]:
+    """互惠排名融合 (Reciprocal Rank Fusion)，用于合并多路检索结果。"""
+    scores = {}
+    doc_map = {}
+    for docs in doc_lists:
+        if not docs:
+            continue
+        for rank, doc in enumerate(docs):
+            key = getattr(doc, "id", None) or f"content::{doc.content}"
+            if key not in doc_map:
+                doc_map[key] = doc
+            scores[key] = scores.get(key, 0.0) + 1.0 / (k + rank + 1)
+    ordered = sorted(scores.items(), key=lambda item: item[1], reverse=True)
+    return [doc_map[key] for key, _ in ordered][:max_docs]
+
+
 # 统一预热，避免 “wasn't warmed up” 报错（尤其在 --reload 时）
 @app.on_event("startup")
 async def _warmup():
     embedder.warm_up()
     reranker.warm_up()
+
 
 @app.get("/ask")
 def ask(q: str = Query(..., description="question")):
@@ -57,15 +76,16 @@ def ask(q: str = Query(..., description="question")):
     bm25_docs = bm25.run(query=q)["documents"]
 
     # 2) 语义检索：先把 query 向量化，再查向量库
-    q_emb = embedder.run(text=q)["embedding"]                # 返回键是 "embedding"
+    q_emb = embedder.run(text=q)["embedding"]  # 返回键是 "embedding"
     dense_docs = dense.run(query_embedding=q_emb)["documents"]
 
-    # 3) 合并候选并用交叉编码器重排
-    candidates = (bm25_docs + dense_docs)[:20]
-    reranked = reranker.run(query=q, documents=candidates)["documents"]
+    # 3) RRF 融合候选并交由交叉编码器重排
+    candidates = _rrf_merge([bm25_docs, dense_docs], max_docs=20)
+    reranked = reranker.run(query=q, documents=candidates)["documents"] if candidates else []
 
     contexts = [d.content for d in reranked][:5]
     return {"query": q, "contexts": contexts}
+
 
 @app.get("/health")
 def health():
